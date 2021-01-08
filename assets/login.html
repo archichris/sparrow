@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Login</title>
+    <link rel="shortcut icon" href="./framework/favicon.ico">
+    <link rel="stylesheet" type="text/css" href="./framework/easyui/themes/metro/easyui.css">
+    <link rel="stylesheet" type="text/css" href="./framework/easyui/themes/icon.css">
+    <link rel="stylesheet" type="text/css" href="./framework/custom/css/style.css">
+    <!-- 此行代码解决ie8中iframe里嵌套此页面会导致jquery错误-->
+    <script>document.documentElement.focus();</script>
+    <script type="text/javascript" src="./framework/easyui/jquery.min.js"></script>
+    <script type="text/javascript" src="./framework/easyui/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="./framework/easyui/locale/easyui-lang-en.js"></script>
+    <script type="text/javascript" src="./framework/jquery/jquery.json-2.2.js"></script>
+    <script type="text/javascript" src="./framework/custom/js/common.js"></script>
+    <script type="text/javascript" src="./framework/js.cookie-2.1.4.min.js"></script>
+    <script type="text/javascript" src="./framework/ace/ace.js" charset="utf-8"></script>
+    <style type="text/css">
+        .icon-myLogin {
+            background: url('image/login.jpg') no-repeat center center;
+        }
+
+        .hCls {
+            background-color: white;
+            text-decoration-color: black;
+            color: black;
+        }
+
+        .main {
+            text-align: center;
+            background-color: #fff;
+            border-radius: 20px;
+            margin: auto;
+            height: 230px;
+            width: 360px;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            /* transform: translateY(-50%),translate(-50%); */
+        }
+    </style>
+</head>
+
+<body style="overflow: hidden;">
+    <div class="main">
+        <div id="p" class="easyui-panel" title="Managerment Center Login" style="width:350px;height:220px;padding:10px;"
+            data-options="iconCls:'icon-myLogin',headerCls:'hCls',closable:false,collapsible:false,minimizable:false,maximizable:false">
+            <div style="padding:10px 40px 20px 40px">
+                <table cellpadding="10">
+                    <tbody>
+                        <tr>
+                            <td>Username:</td>
+                            <td><input id="uname" class="easyui-textbox" name="uname" data-options="required:true"
+                                    style="width:120px;" type="text"></td>
+                        </tr>
+                        <tr>
+                            <td>Password:</td>
+                            <td><input id="passwd" class="easyui-textbox" name="passwd" data-options="required:true"
+                                    style="width:120px;" type="password"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="text-align:center;padding:5px"> <a id="signin" href="javascript:void(0)"
+                        class="easyui-linkbutton" onclick="login()">Sign
+                        in</a> </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    var timeout = 50000 // milliseconds
+    var separator = '';
+    var serverBase = '/';
+    function login() {
+        var uname = $('#uname').textbox('getValue');
+        var passwd = $('#passwd').textbox('getValue');
+        $.ajax({
+            type: 'POST',
+            timeout: timeout,
+            url: 'auth',
+            data: { 'uname': uname, 'passwd': passwd },
+            async: false,
+            dataType: 'text',
+            success: function (data) {
+                // $.messager.alert('Error', 'success', 'error');
+                // console.log('login success.');
+                window.location.href = "/index.html";
+            },
+            error: function (err) {
+                $.messager.alert('Error', "username or password error", 'error');
+            }
+        });
+    }
+
+</script>

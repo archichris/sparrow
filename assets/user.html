@@ -1,0 +1,303 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+    <!-- Easyui引用css文件 -->
+    <link rel="stylesheet" type="text/css" href="./framework/easyui/themes/metro/easyui.css">
+    <link rel="stylesheet" type="text/css" href="./framework/easyui/themes/icon.css">
+    <link rel="stylesheet" type="text/css" href="./framework/custom/css/style.css">
+    <!-- Easyui引用js文件 -->
+    <script type="text/javascript" src="./framework/easyui/jquery.min.js"></script>
+    <script type="text/javascript" src="./framework/easyui/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="./framework/easyui/locale/easyui-lang-en.js"></script>
+    <style type="text/css">
+        .main {
+            text-align: center;
+            background-color: #fff;
+            border-radius: 20px;
+            margin: auto;
+            height: 90%;
+            width: 95%;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            /* transform: translateY(-50%),translate(-50%); */
+        }
+    </style>
+
+</head>
+
+<body>
+    <!--HTML代码-->
+    <div class="main">
+        <table id="usertable" class="easyui-datagrid" style="width:98%;height:auto;text-align: center;"
+            iconCls="icon-save" rownumbers="true" pagination="true" data-options="region:'center'">
+            <thead>
+                <tr>
+                </tr>
+            </thead>
+        </table>
+    </div>
+    <div id="newUser" class="easyui-window" title="New User" data-options="modal:true,closed:true"
+        style="width:400px;height:auto;padding:10px;">
+        <div style="padding:10px 40px 20px 40px">
+            <table cellpadding="10">
+                <tr>
+                    <td>Username:</td>
+                    <td><input id="user_uname" class="easyui-textbox" type="text" name="user_uname"
+                            data-options="required:true" style="width:120px;" /></td>
+                </tr>
+                <tr id="tr_password">
+                    <td>Password:</td>
+                    <td><input id="user_passwd" class="easyui-textbox" type="password" name="user_passwd"
+                            data-options="required:true" style="width:120px;" /></td>
+                </tr>
+                <tr id="tr_chkpasswd">
+                    <td>Check Password:</td>
+                    <td><input id="user_chkpwd" class="easyui-textbox" type="password" name="user_chkpwd"
+                            data-options="required:true" style="width:120px;" /></td>
+                </tr>
+                <tr>
+                    <td>Email:</td>
+                    <td><input id="user_email" class="easyui-textbox" type="text" name="user_email"
+                            data-options="required:false" style="width:120px;" /></td>
+                </tr>
+                <tr>
+                    <td>Tel:</td>
+                    <td><input id="user_tel" class="easyui-textbox" type="text" name="user_tel"
+                            data-options="required:false" style="width:120px;" /></td>
+                </tr>
+                <tr>
+                    <td>Permissions:</td>
+                    <td><input id="user_pm" class="easyui-textbox" type="text" name="user_pm" data-options="required:true"
+                            style="width:120px;" /></td>
+                </tr>
+                <input id="method" style="padding-top:30px;display:none" />
+            </table>
+            <div style="text-align:center;padding:5px">
+                <a href="javascript:void(0)" class="easyui-linkbutton" onclick="UserOK()">Submit</a>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        var datagrid;
+        var officeId = 100;
+        var searchText = '';
+        $(function () {
+            InitData();
+        });
+        function InitData() {
+            datagrid = $('#usertable').datagrid({
+                url: "/api/v1/user/all",
+                title: 'User Manager',
+                iconCls: 'icon-user',
+                pagination: true,
+                pagePosition: 'bottom',
+                pageSize: 10,
+                align: 'center',
+                height: 500,
+                width: '98%',
+                pageList: [10, 20, 30, 40],
+                queryParams: { officeId: officeId, srText: searchText },
+                fitColumns: false,
+                nowrap: true,
+                border: false,
+                idField: 'name',
+                sortName: 'name',
+                sortOrder: 'desc',
+                rownumbers: false,
+                singleSelect: true,
+                checkOnSelect: false,
+                selectOnCheck: true,
+                columns: [[
+                    {
+                        title: 'Name',
+                        field: 'name',
+                        align: 'center',
+                        width: '20%',
+                        formatter: function (value, row, index) {
+                            return '<span title=' + value + '>' + value + '</span>'
+                        }
+                    }, {
+                        title: 'EMAIL',
+                        field: 'email',
+                        align: 'center',
+                        width: '20%',
+                        formatter: function (value, row, index) {
+                            return '<span title=' + value + '>' + value + '</span>'
+                        }
+                    }, {
+                        title: 'Tel',
+                        field: 'tel',
+                        align: 'center',
+                        width: '20%',
+                        formatter: function (value, row, index) {
+                            return '<span title=' + value + '>' + value + '</span>'
+                        }
+                    }, {
+                        title: 'Permissions',
+                        field: 'permissions',
+                        align: 'center',
+                        width: '30%',
+                        formatter: function (value, row, index) {
+                            return '<span title=' + value + '>' + value + '</span>'
+                        }
+                    }
+                    // {
+                    //     field: 'ID', title: 'Operator', width: '15%', align: 'center', formatter: formatOper
+                    // }
+                ]],
+                toolbar: [{
+                    text: 'Add',
+                    iconCls: 'icon-add',
+                    handler: function () { AddUser(); }
+                }, '-', {
+                    text: 'Edit',
+                    iconCls: 'icon-edit',
+                    handler: function () { EditUser(); }
+                }, '-', {
+                    text: 'Delete',
+                    iconCls: 'icon-remove',
+                    handler: function () { RemoveUser(); }
+
+                }, '-'],
+                rowStyler: function (index, row) {
+                    if (row.Price > 30) {
+                        return 'background-color:#6293BB;color:#fff;font-weight:bold;';
+                    }
+
+                },
+
+                onRowContextMenu: function (e, rowIndex, rowData) {
+                    e.preventDefault();
+                    $(this).datagrid('unselectAll');
+                    $(this).datagrid('selectRow', rowIndex);
+                },
+                onCheck: function (rowIndex, rowData) {
+                    var PID = rowData.pid;
+                    // alert('checked ' + PID);
+                },
+                onLoadSuccess: function (data) {
+
+                }
+            });
+        }
+        function formatOper(val, row, index) {
+            return '<input type="button" onclick="removeXM(\'' + row["PID"] + '\')" value="Delete" />';
+        }
+        function removeXM(pid) {
+            alert('删除');
+        }
+        function rowStyle(index, row) {
+            if (row.Price > 30) {
+                //return '<span style="color:red;">'+value+'</span>';
+                return 'background-color:#6293BB;color:#fff;';
+            }
+        }
+        function RemoveUser() {
+            var utable = $('#usertable')
+
+            $.ajax({
+                url: "/api/v1/user/" + row.name, //获取列名后台接口
+                type: "DELETE",
+                dataType: 'text',
+                success: function (stu) {
+                    var index = $('#usertable').datagrid('getRowIndex', $('#usertable').datagrid('getSelected'))
+                    $("#usertable").datagrid("deleteRow", index); 
+                },
+                error: function () {
+                    $.messager.alert('Error', "Del user " + row.name + " failed!", 'error');
+                }
+            });
+        }
+        function resetInput() {
+            $('#user_passwd').textbox({ required: true });
+            $('#user_chkpwd').textbox({ required: true });
+            $('#permissions').textbox({ required: true });
+            $('#tr_password').show()
+            $('#tr_chkpasswd').show()
+        }
+        function AddUser() {
+            $("#newUser").panel({ title: "Add User" });
+            resetInput()
+            document.getElementById("method").value = "POST";
+            $('#newUser').window('open');
+        }
+        function EditUser() {
+            var row = $('#usertable').datagrid('getSelected')
+            document.getElementById("method").value = "PUT";
+            $("#newUser").panel({ title: "Edit User" });
+            $('#tr_password').hide()
+            $('#tr_chkpasswd').hide()
+            $('#user_passwd').textbox({ required: false });
+            $('#user_chkpwd').textbox({ required: false });
+            $('#permissions').textbox({ required: false });
+            $('#user_uname').textbox('setValue', row.name);
+            $('#user_email').textbox('setValue', row.email);
+            $('#user_tel').textbox('setValue', row.tel);
+            $('#user_pm').textbox('setValue', row.permissions);
+            $('#newUser').window('open');
+
+        }
+
+        function UserOK() {
+            $('#newUser').window('close');
+            method = document.getElementById("method").value
+            name = $('#user_uname').textbox('getValue');
+            passwd = $('#user_passwd').textbox('getValue');
+            checkpw = $('#user_chkpwd').textbox('getValue');
+            email = $('#user_email').textbox('getValue');
+            tel = $('#user_tel').textbox('getValue');
+            permissions = $('#user_pm').textbox('getValue');
+            var row = $('#usertable').datagrid('getSelected');
+
+            if (passwd != checkpw) {
+                $.messager.alert('Error', "Password not match Check", 'error');
+                return
+            }
+
+            $.ajax({
+                url: "/api/v1/user/" + name, //获取列名后台接口
+                type: method,
+                dataType: 'text',
+                data: { 'name': name, "password": passwd, "tel": tel, "email": email, "permissions": permissions },
+                success: function () {
+                    if (method == 'POST') {
+                        $('#usertable').datagrid('insertRow', {
+                            row: {
+                                name: name,
+                                tel: tel,
+                                email: email,
+                                permissions: permissions
+                            }
+                        });
+                    }else{
+                        var rowIndex = $('#usertable').datagrid('getRowIndex', $('#usertable').datagrid('getSelected'));//获取选中的索引
+                        $('#usertable').datagrid('updateRow', {
+                            index: rowIndex,
+                            row: {
+                                name: name,
+                                tel: tel,
+                                email: email,
+                                permissions: permissions
+                            }
+                        });                       
+                    }
+                },
+                error: function () {
+                    if (method=='POST'){
+                    $.messager.alert('Error', "add user " + name + " failed!", 'error');
+                }else{
+                    $.messager.alert('Error', "modify user " + name + " failed!", 'error');                   
+                }
+                }
+            });
+        }
+
+
+
+    </script>
+</body>

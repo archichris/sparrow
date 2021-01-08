@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>ETCD Keeper</title>
+	<link rel="shortcut icon" href="./framework/favicon.ico">
+	<link rel="stylesheet" type="text/css" href="./framework/easyui/themes/metro/easyui.css">
+	<link rel="stylesheet" type="text/css" href="./framework/easyui/themes/icon.css">
+	<link rel="stylesheet" type="text/css" href="./framework/custom/css/style.css">
+	<!-- 此行代码解决ie8中iframe里嵌套此页面会导致jquery错误-->
+	<script>document.documentElement.focus();</script>
+	<script type="text/javascript" src="./framework/easyui/jquery.min.js"></script>
+	<script type="text/javascript" src="./framework/easyui/jquery.easyui.min.js"></script>
+	<script type="text/javascript" src="./framework/easyui/locale/easyui-lang-en.js"></script>
+	<script type="text/javascript" src="./framework/jquery/jquery.json-2.2.js"></script>
+	<script type="text/javascript" src="./framework/custom/js/common.js"></script>
+	<script type="text/javascript" src="./framework/js.cookie-2.1.4.min.js"></script>
+	<script type="text/javascript" src="./framework/ace/ace.js" charset="utf-8"></script>
+	<style>
+		#value {
+			position: absolute;
+			top: 40px;
+			right: 15px;
+			bottom: 40px;
+			left: 15px;
+			border: 1px solid #ddd;
+			font-size: 13px !important;
+		}
+	</style>
+</head>
+
+<body style="overflow: hidden;">
+	<h2><img src="./framework/logo.png" width="20" style="position:relative;top:3px;"></img>
+		<font color="00a0e9"> ETCD</font> Keeper 
+	</h2>
+	<div style="margin:20px 0;"></div>
+	<div id="elayout" class="easyui-layout" style="width:100%;height:85%;">
+		<div id="p" data-options="region:'west',tools:'#westTools'" title="/Namespace/App"
+			style="width:30%;padding:10px">
+			<ul id="etree" class="easyui-tree"></ul>
+		</div>
+		<div data-options="region:'center',tools:'#centerTools',footer:'#footer'" title="/" spellcheck="false"
+			style="padding:10px;overflow:hidden;">
+			<div id="value"></div>
+		</div>
+	</div>
+
+	<div id="footer" style="padding:5px;color:#777;">&nbsp;</div>
+	<div id="westTools">
+		<a href="javascript:void(0)" class="icon-path" style="margin-right:4px;" onclick="changeTreeMode();"
+			title="Tree mode"></a>
+		<a href="javascript:void(0)" class="icon-reload" onclick="connect();" title="Refresh tree"></a>
+	</div>
+	<div id="centerTools">
+		<a href="javascript:void(0)" class="easyui-menubutton" style="width:60px;height:15px;"
+			data-options="menu:'#modeMenu'">Mode</a>
+		<a href="javascript:void(0)" class="icon-text" style="margin-right:4px;" onclick="format(aceMode);"
+			title="Format content"></a>
+		<a href="javascript:void(0)" class="icon-save" onclick="saveValue();" title="Save content"></a>
+	</div>
+	<div id="treeDirMenu" class="easyui-menu" style="width:150px;">
+		<div onclick="$('#cnode').window('open')" data-options="iconCls:'icon-add'">Create Node</div>
+		<div onclick="removeNode()" data-options="iconCls:'icon-remove'">Remove Node</div>
+	</div>
+	<div id="treeNodeMenu" class="easyui-menu" style="width:150px;">
+		<div onclick="removeNode()" data-options="iconCls:'icon-remove'">Remove Node</div>
+	</div>
+
+	<div id="rootMenu" class="easyui-menu" style="width:180px;">
+		<div onclick="showCnode()" data-options="iconCls:'icon-add'">Create App</div>
+	</div>
+	<div id="namespaceMenu" class="easyui-menu" style="width:180px;">
+		<div onclick="showCnode()" data-options="iconCls:'icon-add'">Create App</div>
+		<div onclick="removeNode()" data-options="iconCls:'icon-remove'">Remove Namespace</div>
+	</div>
+	<div id="appMenu" class="easyui-menu" style="width:150px;">
+		<div onclick="removeNode()" data-options="iconCls:'icon-remove'">Remove App</div>
+	</div>
+
+	<div id="cnode" class="easyui-window" title="Create node" data-options="modal:true,closed:true"
+		style="width:650px;height:480px;padding:10px;">
+		<div style="padding:10px 40px 20px 40px">
+			<form id="cnodeForm">
+				<table cellpadding="10">
+					<tr>
+						<td>Namespace:</td>
+						<td><input id="namespace" class="easyui-textbox" type="text" name="namespace"
+								data-options="required:true" style="width:450px;" />
+						</td>
+
+					</tr>
+					<tr>
+						<td>Name:</td>
+						<td><input id="name" class="easyui-textbox" type="text" name="name" data-options="required:true"
+								style="width:450px;" /></td>
+					</tr>
+					<tr>
+						<td>Value:</td>
+						<td spellcheck="false"><textarea id="cvalue" class="easyui-textbox" name="value"
+								data-options="multiline:true" style="width:450px;height:200px"></textarea></td>
+					</tr>
+				</table>
+			</form>
+			<div style="text-align:center;padding:5px">
+				<a href="javascript:void(0)" class="easyui-linkbutton" onclick="createNode()">Submit</a>
+			</div>
+		</div>
+	</div>
+
+	<div id="userinfo" class="easyui-window" title="Authentication" data-options="modal:true,closed:true"
+		style="width:350px;height:220px;padding:10px;">
+		<div style="padding:10px 40px 20px 40px">
+			<table cellpadding="10">
+				<tr>
+					<td>Username:</td>
+					<td><input id="uname" class="easyui-textbox" type="text" name="uname" data-options="required:true"
+							style="width:120px;" /></td>
+				</tr>
+				<tr>
+					<td>Password:</td>
+					<td><input id="passwd" class="easyui-textbox" type="password" name="passwd"
+							data-options="required:true" style="width:120px;" /></td>
+				</tr>
+			</table>
+			<div style="text-align:center;padding:5px">
+				<a href="javascript:void(0)" class="easyui-linkbutton" onclick="userOK()">Submit</a>
+			</div>
+		</div>
+	</div>
+
+	<div id="modeMenu" style="">
+		<div id="mode_text" onclick="changeMode('text')">text</div>
+		<div id="mode_toml" onclick="changeMode('toml')">toml</div>
+		<div id="mode_ini" onclick="changeMode('ini')">ini</div>
+		<div id="mode_yaml" onclick="changeMode('yaml')">yaml</div>
+		<div id="mode_xml" onclick="changeMode('xml')">xml</div>
+		<div id="mode_lua" onclick="changeMode('lua')">lua</div>
+		<div id="mode_javascript" onclick="changeMode('javascript')">javascript</div>
+		<div id="mode_json" onclick="changeMode('json')">json</div>
+	</div>
+
+	<script>
+		resizeWindow();
+		$(window).resize(function () { // FIXME: invalid
+			resizeWindow();
+		});
+
+		function resizeWindow() {
+			$('#elayout').height(($(window).height() - 128) + 'px')
+		}
+		var version = '3'
+		var timeout = 5000 // milliseconds
+		var separator = '';
+		var serverBase = '/v3';
+		var etcdBase = Cookies.get('etcd-endpoint');
+		if (typeof (etcdBase) === 'undefined') {
+			etcdBase = '127.0.0.1:2379';
+		}
+
+		var tree = [];
+		var idCount = 0;
+		var editor = ace.edit('value');
+		editor.$blockScrolling = Infinity;
+		var curIconMode = 'mode_icon_text';
+		var aceMode = Cookies.get('ace-mode');
+		if (typeof (aceMode) === 'undefined') {
+			aceMode = 'text';
+		}
+		treeMode = 'path'
+		$.ajax({
+			type: 'GET',
+			timeout: timeout,
+			url: serverBase + '/separator',
+			async: false,
+			dataType: 'text',
+			success: function (data) {
+				separator = data;
+				// console.log("separator: " + data);
+			},
+			error: function (err) {
+				$.messager.alert('Error', $.toJSON(err), 'error');
+			}
+		});
+
+		$(document).ready(function () {
+			editor.setTheme('ace/theme/github');
+			editor.getSession().setMode('ace/mode/' + aceMode);
+			changeMode(aceMode);
+			init();
+		});
+
+		function init() {
+			var t = $('#etree').tree({
+				animate: true,
+				onClick: showNode,
+				onContextMenu: showMenu
+			});
+			connect();
+		}
+
+		function changeHost(newValue, oldValue) {
+			if (newValue === '') {
+				$.messager.alert('Error', 'ETCD address is empty.', 'error');
+			} else {
+				Cookies.set('etcd-endpoint', newValue, { expires: 30 });
+				etcdBase = newValue;
+				connect();
+			}
+		}
+
+		function connect() {
+			var status = 'ok';
+			$.ajax({
+				type: 'POST',
+				timeout: timeout,
+				url: serverBase + '/connect',
+				data: { 'host': "", 'uname': "", 'passwd': "" },
+				async: false,
+				dataType: 'json',
+				success: function (data) {
+					if (data.status === 'ok') {
+						console.log('Connect etcd success.');
+					
+					} else {
+						$.messager.alert('Error', data.message, 'error');
+						status = 'error'
+					}
+				},
+				error: function (err) {
+					$.messager.alert('Error', $.toJSON(err), 'error');
+				}
+			});
+
+			if (status === 'ok') {
+				reload();
+			} else {
+				resetValue();
+				$('#etree').tree('loadData', []);
+			}
+		}
+
+		function reload() {
+			var rootNode = {
+				id: getId(),
+				children: [],
+				dir: true,
+				path: separator,
+				text: separator,
+				iconCls: 'icon-dir'
+			};
+			tree = [];
+			tree.push(rootNode);
+			$('#etree').tree('loadData', tree);
+			showNode($('#etree').tree('getRoot'));
+			resetValue();
+		}
+
+		function resetValue() {
+			$('#elayout').layout('panel', 'center').panel('setTitle', separator);
+			editor.getSession().setValue('');
+			editor.setReadOnly(true);
+			$('#footer').html('&nbsp;');
+		}
+
+		function showNode(node) {
+			$('#elayout').layout('panel', 'center').panel('setTitle', node.path);
+			editor.getSession().setValue('');
+			if (node.dir === false) {
+				editor.setReadOnly(false);
+				$.ajax({
+					type: 'GET',
+					timeout: timeout,
+					url: serverBase + '/get',
+					data: { 'key': node.path },
+					async: true,
+					dataType: 'json',
+					success: function (data) {
+						if (data.errorCode) {
+							$.messager.alert('Error', "node.path="+node.path+" return " +data.errorCode , 'error');
+							$('#etree').tree('remove', node.target);
+							console.log(data.message);
+							resetValue()
+						} else {
+							editor.getSession().setValue(data.node.value);
+							// console.log("[debug] " + data.node.value);
+							var ttl = 0;
+							if (data.node.ttl) {
+								ttl = data.node.ttl;
+							}
+							changeFooter(ttl, data.node.createdIndex, data.node.modifiedIndex);
+							changeModeBySuffix(node.path);
+						}
+					},
+					error: function (err) {
+						$.messager.alert('Error', $.toJSON(err), 'error');
+					}
+				});
+			} else {
+				if (node.children.length > 0) {
+					$('#etree').tree(node.state === 'closed' ? 'expand' : 'collapse', node.target);
+				}
+			    editor.setReadOnly(true);
+
+				$('#footer').html('&nbsp;');
+				// clear child node
+				var children = $('#etree').tree('getChildren', node.target);
+				//if (node.state === 'closed' || children.length === 0) {
+
+				//}
+				var url = '';
+				if (treeMode === 'list') {
+					url = serverBase + '/get';
+				} else {
+					url = serverBase + '/getpath';
+				}
+				$.ajax({
+					type: 'GET',
+					timeout: timeout,
+					url: url,
+					data: { 'key': node.path, 'prefix': 'true' },
+					async: true,
+					dataType: 'json',
+					success: function (data) {
+						if (data.errorCode) {
+							$.messager.alert('Error', data.message, 'error');
+						} else {
+							if (data.node.value) {
+								editor.getSession().setValue(data.node.value);
+								changeFooter(data.node.ttl, data.node.createdIndex, data.node.modifiedIndex);
+								changeModeBySuffix(node.path);
+							}
+							var arr = [];
+
+							if (data.node.nodes) {
+								// refresh child node
+								for (var i in data.node.nodes) {
+									var newData = getNode(data.node.nodes[i]);
+									arr.push(newData);
+								}
+								$('#etree').tree('append', {
+									parent: node.target,
+									data: arr
+								});
+							}
+
+							for (var n in children) {
+								$('#etree').tree('remove', children[n].target);
+							}
+						}
+					},
+					error: function (err) {
+						$.messager.alert('Error', $.toJSON(err), 'error');
+					}
+				});
+			}
+		}
+
+		function getNode(n) {
+			var text = '';
+			if (treeMode === 'list') {
+				text = n.key;
+			} else {
+				var path = n.key.split(separator);
+				text = path[path.length - 1];
+			}
+			var obj = {
+				id: getId(),
+				text: text,
+				dir: false,
+				iconCls: 'icon-text',
+				path: n.key,
+				children: []
+			};
+			if (n.dir === true) {
+				obj.state = 'closed';
+				obj.dir = true;
+				obj.iconCls = 'icon-dir';
+				if (n.nodes) {
+					for (var i in n.nodes) {
+						var rn = getNode(n.nodes[i]);
+						obj.children.push(rn);
+					}
+				}
+			}
+			return obj
+		}
+
+		function showMenu(e, node) {
+			e.preventDefault();
+			$('#etree').tree('select', node.target);
+			// $.messager.alert('Error',"[debug] showMenu->node.target = " + node.target, 'error');
+			var mid = "appMenu";
+			if (node.path == separator) {
+				mid = 'rootMenu'
+			} else if (node.dir == true) {
+				mid = 'namespaceMenu'
+			}
+			$('#' + mid).menu('show', {
+				left: e.pageX,
+				top: e.pageY
+			});
+		}
+
+		function saveValue() {
+			var node = $('#etree').tree('getSelected');
+			$.ajax({
+				type: 'PUT',
+				timeout: timeout,
+				url: serverBase + '/put',
+				data: { 'key': node.path, 'value': editor.getValue() },
+				async: true,
+				dataType: 'json',
+				success: function (data) {
+					if (data.errorCode) {
+						$.messager.alert('Error', data.message, 'error');
+					} else {
+						editor.getSession().setValue(data.node.value);
+						var ttl = 0;
+						if (data.node.ttl) {
+							ttl = data.node.ttl;
+						}
+						changeFooter(ttl, data.node.createdIndex, data.node.modifiedIndex);
+						alertMessage('Save success.');
+					}
+				},
+				error: function (err) {
+					$.messager.alert('Error', $.toJSON(err), 'error');
+				}
+			});
+		}
+		function showCnode() {
+			var node = $('#etree').tree('getSelected');
+			var nodePath = node.path;
+			// console.log("[debug] nodePath = " + nodePath)
+			if (nodePath == separator) {
+				nodePath = '';
+			}
+			$("#namespace").textbox('setValue', nodePath.replace(separator,''));
+			$('#cnode').window('open')
+		}
+
+
+		function createNode() {
+			var node = $('#etree').tree('getSelected');
+			// var nodePath = node.path;
+			// if (nodePath === separator) {
+			// 	nodePath = ''
+			// }
+			nodePath = ''
+			console.log("[debug] treeMode = " + treeMode);
+
+			if ($('#cnodeForm').form('validate')) {
+				var namespace = $('#namespace').textbox('getValue');
+				if ($.trim(namespace) == '') {
+					$.messager.alert('Error', "Namespace is invalid", 'error');
+				}
+				var name = $('#name').textbox('getValue');
+				if ($.trim(name) == '') {
+					$.messager.alert('Error', "Name is invalid", 'error');
+				}
+				while (namespace.indexOf(separator) > -1) {
+					namespace = namespace.replace(separator, "_")
+				}
+				while (name.indexOf(separator) > -1) {
+					name = name.replace(separator, "_")
+				}
+				var inputValue = $('#cvalue').textbox('getValue');
+				// $.messager.alert('Error', nodePath + separator + namespace + separator + name, 'error');
+				$.ajax({
+					type: 'PUT',
+					timeout: timeout,
+					url: serverBase + '/put',
+					data: { dir: false, 'key': nodePath + separator + namespace + separator + name, 'value': $('#cvalue').textbox().val() },
+					async: true,
+					dataType: 'text',
+					success: function (data) {
+						$('#cnode').window('close');
+						var ret = $.evalJSON(data);
+						if (ret.errorCode) {
+							$.messager.alert('Error', ret.message, 'error');
+						} else {
+							alertMessage('Create success.');
+							var newData = [];
+							var preObj = {};
+							var prePath = node.path;
+							var objNamespace = {
+								id: getId(),
+								text: namespace,
+								state: 'open',
+								dir: true,
+								iconCls: 'icon-dir',
+								path: separator + namespace,
+								children: []
+							};
+							var objName = {
+								id: getId(),
+								text: name,
+								state: '',
+								dir: false,
+								iconCls: 'icon-text',
+								path: objNamespace.path + separator + name,
+								children: []
+							};
+
+							var objNode = nodeExist(objNamespace.path)
+							if (objNode != null) {
+								node = objNode;
+								objNode.children.push(objName)
+								newData.push(objName)
+							} else {
+								newData.push(objNamespace)
+								objNamespace.children.push(objName)
+							}
+							if (version === '3') {
+								$('#etree').tree('update', {
+									target: node.target,
+									iconCls: 'icon-dir'
+								});
+							}
+							$('#etree').tree('append', {
+								parent: node.target,
+								data: newData
+							});
+						}
+						$('#cvalue').textbox('enable', 'none');
+						$('#cnodeForm').form('reset');
+						$('#ttl').numberbox('setValue', '');
+					},
+					error: function (err) {
+						$.messager.alert('Error', err, 'error');
+					}
+				});
+			}
+		}
+
+		function nodeExist(p) {
+			for (var i = 0; i <= idCount; i++) {
+				var node = $('#etree').tree('find', i);
+				if (node !== null && node.path === p) {
+					return node;
+				}
+			}
+			return null;
+		}
+
+		function removeNode() {
+			var node = $('#etree').tree('getSelected');
+			$.messager.confirm('Confirm', 'Remove ' + node.text + '?', function (r) {
+				if (r) {
+					$.ajax({
+						type: 'POST',
+						timeout: timeout,
+						url: serverBase + '/delete',
+						data: { 'key': node.path, 'dir': node.dir },
+						async: true,
+						dataType: 'text',
+						success: function (data) {
+							resetValue();
+							if (data === 'ok') {
+								alertMessage('Delete success.');
+
+								var pnode = $('#etree').tree('getParent', node.target);
+
+								$('#etree').tree('remove', node.target);
+
+							} else {
+								$.messager.alert('Error', data, 'error');
+							}
+						},
+						error: function (err) {
+							$.messager.alert('Error', $.toJSON(err), 'error');
+						}
+					});
+				}
+			});
+		}
+
+		function selDir(item) {
+			if (item.value === 'true') {
+				$('#cvalue').textbox('disable', 'none');
+			} else {
+				$('#cvalue').textbox('enable', 'none');
+			}
+		}
+
+		function alertMessage(msg) {
+			$.messager.show({
+				title: 'Message',
+				msg: msg,
+				showType: 'slide',
+				timeout: 1000,
+				style: {
+					right: '',
+					bottom: ''
+				}
+			});
+		}
+
+		function getId() {
+			return idCount++;
+		}
+
+		function changeMode(mode) {
+			aceMode = mode;
+			Cookies.set('ace-mode', aceMode, { expires: 30 });
+			$('#' + curIconMode).remove();
+			editor.getSession().setMode('ace/mode/' + aceMode);
+			curIconMode = 'mode_icon_' + aceMode;
+			$('#mode_' + mode).append('<div id="' + curIconMode + '" class="menu-icon icon-ok"></div>');
+			$('#showMode').html(aceMode);
+		}
+
+		function changeFooter(ttl, cIndex, mIndex) {
+			$('#footer').html('<span>TTL&nbsp;:&nbsp;' + ttl + '&nbsp;&nbsp;&nbsp;&nbsp;CreateRevision&nbsp;:&nbsp;' + cIndex + '&nbsp;&nbsp;&nbsp;&nbsp;ModRevision&nbsp;:&nbsp;' + mIndex + '</span><span id="showMode" style="position: absolute;right: 10px;color: #777;">' + aceMode + '</span>');
+		}
+
+		function format(type) {
+			if (type === 'json') {
+				val = JSON.parse(editor.getValue());
+				editor.setValue(JSON.stringify(val, null, 4));
+				editor.getSession().setMode('ace/mode/' + 'json');
+				editor.clearSelection();
+				editor.navigateFileStart();
+			}
+		}
+
+		function changeTreeMode() {
+			if (version === '2') {
+				treeMode = 'path';
+				alertMessage('Etcd v2 only supports directory mode.');
+			} else {
+				if (treeMode === 'list') {
+					treeMode = 'path';
+				} else {
+					treeMode = 'list';
+				}
+				Cookies.set('tree-mode', treeMode, { expires: 30 });
+				connect();
+			}
+		}
+
+		function changeModeBySuffix(path) {
+			var a = path.split(separator);
+			var tokens = a.slice(a.length - 1, a.lenght)[0].split('.');
+			if (tokens.length < 2) {
+				return
+			}
+			var mode = tokens[tokens.length - 1];
+			var modes = $('#modeMenu').children();
+			for (var i = 0; i < modes.length; i++) {
+				m = modes[i].innerText;
+				if (mode === m) {
+					changeMode(m);
+					return
+				}
+			}
+		}
+
+	</script>
+</body>
+
+</html>

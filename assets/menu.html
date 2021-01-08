@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+  <script type="text/javascript" src="./framework/easyui/jquery.min.js"></script>
+	<script type="text/javascript" src="./framework/easyui/jquery.easyui.min.js"></script>
+	<script type="text/javascript" src="./framework/easyui/locale/easyui-lang-en.js"></script>
+	<script type="text/javascript" src="./framework/jquery/jquery.json-2.2.js"></script>
+	<script type="text/javascript" src="./framework/custom/js/common.js"></script>
+	<script type="text/javascript" src="./framework/js.cookie-2.1.4.min.js"></script>
+	<script type="text/javascript" src="./framework/ace/ace.js" charset="utf-8"></script>
+  <title>Menu</title>
+</head>
+
+<body>
+  <div style="width: 100%;height: 100%;background-color: #efeff5;text-align: center;padding-top: 1px;font-size: 20px;">
+    <div>
+      <h2><img src="./framework/sparrow.png" width="30%" style="position:relative;top:3px;"></img>
+      </h2>
+    </div>
+    <div style="padding-top:30px;">
+      <a target="mainframe" href="cfg.html">Configuration</a>
+    </div>
+    <div style="padding-top:30px;">
+      <a id="toprometheus" style="padding-top:30px;" target="mainframe" href="prometheus.html">Monitor</a>
+    </div>
+    <div style="padding-top:30px;">
+      <a id="configuser" style="padding-top:30px;display:none" target="mainframe" href="user.html">Users</a>
+    </div>
+  </div>
+  <script>
+    var host = window.location.host;
+    var addr = host.split(":")[0];
+    addr = "http:\\\\" + addr + ":9090";
+    document.getElementById("toprometheus").setAttribute("href", addr);
+    $.ajax({
+      type: 'GET',
+      timeout: 5000,
+      url: "/api/v1/user/self/permissions",
+      async: false,
+      dataType: 'text',
+      success: function (data) {
+        ps = data.split(",")
+        for (var i = 0, len = ps.length; i < len; i++) {
+          if (data == "/") {
+            document.getElementById("configuser").setAttribute("style", "display");
+            break
+          }
+        }
+      },
+      error: function (err) {
+        $.messager.alert('Error', "samething wrong", 'error');
+      }
+    });
+  </script>
+
+
+  <!-- <div style="padding-top:30px;">
+        <a  target="mainframe" href="prometheus/graph" >Prometheus</a></div>
+    </div> -->
+</body>
+
+</html>
